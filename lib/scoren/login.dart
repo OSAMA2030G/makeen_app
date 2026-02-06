@@ -1,0 +1,169 @@
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../core/app_theme.dart';
+import '../core/db_helper.dart';
+import '../widgets/custom_button.dart';
+import '../widgets/custom_text_field.dart';
+// --- السطرين القادمين هما الحل للمشكلة ---
+import 'home.dart';
+import 'register.dart';
+
+class Login extends StatefulWidget {
+  const Login({super.key});
+
+  @override
+  State<Login> createState() => _LoginState();
+}
+
+class _LoginState extends State<Login> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  bool _isObscured = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 25.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  const SizedBox(height: 50),
+                  // الشعار الكبير المطلوب
+                  Center(
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      height: 250,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.image, size: 100, color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+
+                  // تبديل بين الدخول والإنشاء
+                  Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Row(
+                      children: [
+                        _buildTabItem("انشاء حساب", false),
+                        _buildTabItem("تسجيل الدخول", true),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+                  const Align(
+                    alignment: Alignment.centerRight,
+                    child: Text("أهلاً بعودتك",
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.primaryRed)),
+                  ),
+                  const SizedBox(height: 25),
+
+                  CustomTextField(
+                    controller: emailController,
+                    label: "البريد الالكتروني",
+                    hint: "example@mail.com",
+                    icon: Icons.email_outlined,
+                    validator: (v) => v!.isEmpty ? "يرجى إدخال البريد" : null,
+                  ),
+                  const SizedBox(height: 20),
+
+                  CustomTextField(
+                    controller: passwordController,
+                    label: "كلمة المرور",
+                    hint: "*********",
+                    isPassword: _isObscured,
+                    icon: Icons.lock_outline,
+                    suffixIcon: IconButton(
+                      icon: Icon(_isObscured ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setState(() => _isObscured = !_isObscured),
+                    ),
+                    validator: (v) => v!.isEmpty ? "يرجى إدخال كلمة المرور" : null,
+                  ),
+                  const SizedBox(height: 35),
+
+                  CustomButton(
+                    text: "تسجيل الدخول",
+                    onPressed: _handleLogin,
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // الدالة التي كانت تسبب الخطأ
+  void _handleLogin() async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        var user = await DbHelper().loginCheck(
+          emailController.text.trim(),
+          passwordController.text.trim(),
+        );
+
+        if (user != null) {
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('isLoggedIn', true);
+          await prefs.setInt('userId', user['id']);
+
+          if (mounted) {
+            // الانتقال إلى كلاس Home الموجود في ملف home.dart
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const Home()),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("البريد أو كلمة المرور غير صحيحة")),
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint("Login Error: $e");
+      }
+    }
+  }
+
+  Widget _buildTabItem(String title, bool isActive) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          if (!isActive) {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const Register()));
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isActive ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(25),
+          ),
+          child: Text(
+            title,
+            style: TextStyle(
+              color: isActive ? Colors.black : Colors.grey,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
