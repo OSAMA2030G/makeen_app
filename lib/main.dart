@@ -1,37 +1,43 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'core/app_theme.dart';
-// تأكد أن المسار أدناه يطابق مكان ملف login.dart في مشروعك
-import 'scoren/login.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MakeenApp());
+  try {
+    await Firebase.initializeApp();
+    print("✅ Firebase Connected Successfully");
+  } catch (e) {
+    print("❌ Firebase Error: $e");
+  }
+  runApp(const MyApp());
 }
 
-class MakeenApp extends StatelessWidget {
-  const MakeenApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'تطبيق مكين',
-      theme: AppTheme.lightTheme,
+      title: 'Wasita App',
+      // دعم اللغة العربية
+      home: Directionality(
+        textDirection: TextDirection.rtl,
+        child: const SignupScreen(),
+      ),
+    );
+  }
+}
 
-      // إعدادات اللغة العربية لضمان ظهور النصوص والاتجاهات بشكل صحيح
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('ar', 'SA'),
-      ],
-      locale: const Locale('ar', 'SA'),
-
-      // هنا تم استدعاء Login() بالاسم الجديد الذي اعتمدته في ملف login.dart
-      home: const Login(),
+// أضف كلاس الـ SignupScreen هنا أو تأكد من استدعائه من ملف login.dart
+class SignupScreen extends StatelessWidget {
+  const SignupScreen({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("إنشاء حساب")),
+      body: const Center(child: Text("واجهة وسيطة جاهزة للربط")),
     );
   }
 }

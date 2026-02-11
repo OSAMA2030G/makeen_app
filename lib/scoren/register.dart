@@ -16,6 +16,7 @@ class _RegisterState extends State<Register> {
 
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController(); // حقل الهاتف الجديد
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
 
@@ -34,17 +35,15 @@ class _RegisterState extends State<Register> {
               key: _formKey,
               child: Column(
                 children: [
-                  // --- التعديل هنا: تكبير الشعار ومسافة علوية مريحة ---
                   const SizedBox(height: 50),
                   Center(
                     child: Image.asset(
                       'assets/images/logo.png',
-                      height: 250, // الحجم الكبير المطلوب
+                      height: 200, // عدلت الحجم قليلاً ليتناسب مع الحقول الإضافية
                       fit: BoxFit.contain,
                     ),
                   ),
-                  const SizedBox(height: 40),
-                  // -------------------------------------------
+                  const SizedBox(height: 30),
 
                   Container(
                     padding: const EdgeInsets.all(5),
@@ -60,13 +59,13 @@ class _RegisterState extends State<Register> {
                     ),
                   ),
 
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 25),
                   const Align(
                     alignment: Alignment.centerRight,
                     child: Text("إنشاء حساب جديد",
                         style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.primaryRed)),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 15),
 
                   CustomTextField(
                     controller: nameController,
@@ -77,6 +76,7 @@ class _RegisterState extends State<Register> {
                   ),
                   const SizedBox(height: 15),
 
+                  // حقل البريد الإلكتروني
                   CustomTextField(
                     controller: emailController,
                     label: "البريد الالكتروني",
@@ -87,6 +87,17 @@ class _RegisterState extends State<Register> {
                       if (!v.contains('@')) return "صيغة البريد غير صحيحة";
                       return null;
                     },
+                  ),
+                  const SizedBox(height: 15),
+
+                  // حقل رقم الهاتف الجديد (متوافق مع DB)
+                  CustomTextField(
+                    controller: phoneController,
+                    label: "رقم الهاتف",
+                    hint: "777000000",
+                    icon: Icons.phone_android_outlined,
+                    keyboardType: TextInputType.phone,
+                    validator: (v) => v!.trim().isEmpty ? "يرجى إدخال رقم الهاتف" : null,
                   ),
                   const SizedBox(height: 15),
 
@@ -116,13 +127,13 @@ class _RegisterState extends State<Register> {
                     ),
                     validator: (v) => v!.trim() != passwordController.text.trim() ? "كلمة المرور غير متطابقة" : null,
                   ),
-                  const SizedBox(height: 35),
+                  const SizedBox(height: 30),
 
                   CustomButton(
                     text: "إنشاء حساب",
                     onPressed: _handleRegister,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 25),
                 ],
               ),
             ),
@@ -134,26 +145,30 @@ class _RegisterState extends State<Register> {
 
   void _handleRegister() async {
     if (_formKey.currentState!.validate()) {
+      // تجهيز البيانات وفقاً لجدول users الجديد
       Map<String, dynamic> newUser = {
         'fullName': nameController.text.trim(),
         'email': emailController.text.trim(),
+        'phone': phoneController.text.trim(), // الحقل الجديد
         'password': passwordController.text.trim(),
+        'isBlocked': 0, // قيمة افتراضية
       };
 
       try {
-        int result = await DbHelper().registerUser(newUser);
+        // تأكد أن دالة registerUser في DbHelper تستخدم جدول users
+        int result = await DbHelper().insertUser(newUser);
         if (result > 0) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("تم إنشاء الحساب بنجاح!")),
             );
-            Navigator.pop(context);
+            Navigator.pop(context); // العودة لتسجيل الدخول
           }
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("هذا البريد مسجل مسبقاً")),
+            const SnackBar(content: Text("البريد أو رقم الهاتف مسجل مسبقاً")),
           );
         }
       }

@@ -8,8 +8,10 @@ class CustomTextField extends StatelessWidget {
   final Widget? suffixIcon;
   final bool isPassword;
   final String? Function(String?)? validator;
-  // أضفنا هذا السطر لاستقبال المتحكم
   final TextEditingController? controller;
+  final TextInputType? keyboardType;
+  // --- الإضافة الجديدة لحل المشكلة ---
+  final VoidCallback? onTap;
 
   const CustomTextField({
     super.key,
@@ -19,7 +21,9 @@ class CustomTextField extends StatelessWidget {
     this.suffixIcon,
     this.isPassword = false,
     this.validator,
-    this.controller, // أضفناه هنا في المنشئ
+    this.controller,
+    this.keyboardType,
+    this.onTap, // إضافته هنا
   });
 
   @override
@@ -38,11 +42,14 @@ class CustomTextField extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           TextFormField(
-            // ربط المتحكم بـ TextFormField الفعلي
             controller: controller,
+            keyboardType: keyboardType,
             textAlign: TextAlign.start,
             obscureText: isPassword,
             validator: validator,
+            // --- تفعيل خاصية الضغط ومنع الكيبورد عند الحاجة ---
+            onTap: onTap,
+            readOnly: onTap != null, // إذا وجد أمر ضغط (مثل التاريخ) لا تظهر الكيبورد
             decoration: InputDecoration(
               filled: true,
               fillColor: AppTheme.fieldGrey,

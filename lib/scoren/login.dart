@@ -4,7 +4,7 @@ import '../core/app_theme.dart';
 import '../core/db_helper.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
-// --- السطرين القادمين هما الحل للمشكلة ---
+import 'admin_dashboard.dart';
 import 'home.dart';
 import 'register.dart';
 
@@ -17,7 +17,7 @@ class Login extends StatefulWidget {
 
 class _LoginState extends State<Login> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController emailController = TextEditingController();
+  final TextEditingController identifierController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   bool _isObscured = true;
 
@@ -34,19 +34,17 @@ class _LoginState extends State<Login> {
               child: Column(
                 children: [
                   const SizedBox(height: 50),
-                  // الشعار الكبير المطلوب
                   Center(
                     child: Image.asset(
                       'assets/images/logo.png',
-                      height: 250,
+                      height: 200,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) =>
                       const Icon(Icons.image, size: 100, color: Colors.grey),
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 30),
 
-                  // تبديل بين الدخول والإنشاء
                   Container(
                     padding: const EdgeInsets.all(5),
                     decoration: BoxDecoration(
@@ -67,16 +65,16 @@ class _LoginState extends State<Login> {
                     child: Text("أهلاً بعودتك",
                         style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.primaryRed)),
                   ),
-                  const SizedBox(height: 25),
+                  const SizedBox(height: 20),
 
                   CustomTextField(
-                    controller: emailController,
-                    label: "البريد الالكتروني",
-                    hint: "example@mail.com",
-                    icon: Icons.email_outlined,
-                    validator: (v) => v!.isEmpty ? "يرجى إدخال البريد" : null,
+                    controller: identifierController,
+                    label: "البريد الإلكتروني أو رقم الهاتف",
+                    hint: "example@mail.com أو 777xxxxxx",
+                    icon: Icons.person_outline,
+                    validator: (v) => v!.trim().isEmpty ? "يرجى إدخال البيانات" : null,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 15),
 
                   CustomTextField(
                     controller: passwordController,
@@ -106,22 +104,47 @@ class _LoginState extends State<Login> {
     );
   }
 
-  // الدالة التي كانت تسبب الخطأ
   void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
       try {
-        var user = await DbHelper().loginCheck(
-          emailController.text.trim(),
-          passwordController.text.trim(),
-        );
+        String input = identifierController.text.trim();
+        String pass = passwordController.text.trim();
+
+        // --- 1. فحص إذا كان الداخل هو الأدمن (حساب ثابت) ---
+        if (input == "01" && pass == "001") {
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('isLoggedIn', true);
+          await prefs.setString('userName', "مدير النظام");
+          await prefs.setInt('userId', 0); // رقم تعريفي خاص بالأدمن
+
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const AdminDashboard()),
+            );
+          }
+          return; // الخروج فوراً لعدم الانتقال للكود بالأسفل
+        }
+
+        // --- 2. فحص المستخدم العادي في قاعدة البيانات ---
+        var user = await DbHelper().loginCheck(input, pass);
 
         if (user != null) {
+          if (user['isBlocked'] == 1) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("عذراً، هذا الحساب محظور")),
+              );
+            }
+            return;
+          }
+
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setBool('isLoggedIn', true);
           await prefs.setInt('userId', user['id']);
+          await prefs.setString('userName', user['fullName']);
 
           if (mounted) {
-            // الانتقال إلى كلاس Home الموجود في ملف home.dart
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const Home()),
@@ -130,7 +153,7 @@ class _LoginState extends State<Login> {
         } else {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("البريد أو كلمة المرور غير صحيحة")),
+              const SnackBar(content: Text("البيانات المدخلة غير صحيحة")),
             );
           }
         }
